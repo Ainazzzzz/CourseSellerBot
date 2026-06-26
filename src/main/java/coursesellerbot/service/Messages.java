@@ -78,6 +78,10 @@ public final class Messages {
         return ru(lang) ? "👤 Мои курсы" : "👤 Менин курстарым";
     }
 
+    public static String backButton(Language lang) {
+        return ru(lang) ? "⬅️ Назад" : "⬅️ Артка";
+    }
+
     // ===================== Оплата =====================
 
     public static String paymentCreated(Language lang) {

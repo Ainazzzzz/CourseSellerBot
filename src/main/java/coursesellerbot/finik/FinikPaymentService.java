@@ -92,9 +92,17 @@ public class FinikPaymentService {
 
             if (response.getStatusCode() == HttpStatus.FOUND && response.getHeaders().getLocation() != null) {
                 String location = response.getHeaders().getLocation().toString();
+                 // Finik при отклонении сразу редиректит на /v1/redirect?...&status=failed.
+                // Такую ссылку нельзя отдавать пользователю — это не страница оплаты.
+                if (location.contains("status=failed") || location.contains("/v1/redirect")) {
+                    log.error("Finik отклонил платёж. Redirect: {}. Проверь: 1) публичный ключ зарегистрирован в Finik; "
+                            + "2) api-key/account-id боевые; 3) подпись запроса.", location);
+                    throw new RuntimeException("Finik отклонил создание платежа (status=failed): " + location);
+                }
                 log.info("Получен URL оплаты: {}", location);
                 return location;
             }
+            log.error("Неожиданный ответ Finik: status={}, body={}", response.getStatusCode(), response.getBody());
             throw new RuntimeException("Неожиданный ответ Finik: "
                     + response.getStatusCode() + ", body: " + response.getBody());
 

@@ -85,22 +85,22 @@ public class CourseSellerBot extends TelegramLongPollingBot {
 
         if (text.startsWith("/start")) {
             if (user.getLanguage() == null) {
-                askLanguage(chatId);
+                askLanguage(chatId, null);
             } else {
-                showMainMenu(chatId, user.getLanguage());
+                showMainMenu(chatId, user.getLanguage(), null);
             }
             return;
         }
         if (text.equals("/menu")) {
-            showMainMenu(chatId, langOf(user));
+            showMainMenu(chatId, langOf(user), null);
             return;
         }
         if (text.equals("/mycourses")) {
-            showMyCourses(chatId, user);
+            showMyCourses(chatId, user, null);
             return;
         }
         if (text.equals("/lang")) {
-            askLanguage(chatId);
+            askLanguage(chatId, null);
             return;
         }
         if (text.equals("/stats")) {
@@ -121,6 +121,7 @@ public class CourseSellerBot extends TelegramLongPollingBot {
         telegram.answerCallback(cb.getId());
 
         Long chatId = cb.getMessage().getChatId();
+        Integer messageId = cb.getMessage().getMessageId();
         var from = cb.getFrom();
         BotUser user = userService.getOrCreate(chatId, from.getUserName(), from.getFirstName());
         String data = cb.getData();
@@ -128,39 +129,47 @@ public class CourseSellerBot extends TelegramLongPollingBot {
         if (data.startsWith("lang:")) {
             Language lang = "KG".equals(data.substring(5)) ? Language.KG : Language.RU;
             user = userService.setLanguage(chatId, lang);
-            telegram.send(chatId, Messages.welcome(lang));
-            showMainMenu(chatId, lang);
+            showMainMenu(chatId, lang, messageId);
             return;
         }
         if (data.equals("menu")) {
-            showMainMenu(chatId, langOf(user));
+            showMainMenu(chatId, langOf(user), messageId);
             return;
         }
         if (data.equals("changelang")) {
-            askLanguage(chatId);
+            askLanguage(chatId, messageId);
             return;
         }
         if (data.equals("mycourses")) {
-            showMyCourses(chatId, user);
+            showMyCourses(chatId, user, messageId);
             return;
         }
         if (data.equals("buyall")) {
-            startBundlePurchase(chatId, user);
+            startBundlePurchase(chatId, user, messageId);
+        }
+    }
+
+    /** Рисует экран: редактирует текущее сообщение (если есть messageId) или шлёт новое. */
+    private void render(Long chatId, Integer messageId, String text, InlineKeyboardMarkup keyboard) {
+        if (messageId != null) {
+            telegram.editText(chatId, messageId, text, keyboard);
+        } else {
+            telegram.send(chatId, text, keyboard);
         }
     }
 
     // ===================== Экраны =====================
 
-    private void askLanguage(Long chatId) {
+    private void askLanguage(Long chatId, Integer messageId) {
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         rows.add(List.of(
                 button(Messages.langButtonRu(), "lang:RU"),
                 button(Messages.langButtonKg(), "lang:KG")
         ));
-        telegram.send(chatId, Messages.chooseLanguage(), markup(rows));
+        render(chatId, messageId, Messages.chooseLanguage(), markup(rows));
     }
 
-    private void showMainMenu(Long chatId, Language lang) {
+    private void showMainMenu(Long chatId, Language lang, Integer messageId) {
         String currency = coursesProperties.getCurrency();
         int months = coursesProperties.getDefaultAccessMonths();
 
@@ -179,36 +188,38 @@ public class CourseSellerBot extends TelegramLongPollingBot {
         rows.add(List.of(button(Messages.myCoursesButton(lang), "mycourses")));
         rows.add(List.of(button(Messages.changeLangButton(lang), "changelang")));
 
-        telegram.send(chatId, text.toString(), markup(rows));
+        render(chatId, messageId, text.toString(), markup(rows));
     }
 
-    private void startBundlePurchase(Long chatId, BotUser user) {
+    private void startBundlePurchase(Long chatId, BotUser user, Integer messageId) {
         Language lang = langOf(user);
         try {
             String url = paymentService.createBundlePayment(user);
-            sendPayLink(chatId, lang, url);
+            InlineKeyboardButton payBtn = InlineKeyboardButton.builder()
+                    .text(Messages.payButton(lang))
+                    .url(url)
+                    .build();
+            List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+            rows.add(List.of(payBtn));
+            rows.add(List.of(button(Messages.backButton(lang), "menu")));
+            render(chatId, messageId, Messages.paymentCreated(lang), markup(rows));
         } catch (Exception e) {
             log.error("Ошибка создания платежа за пакет", e);
-            telegram.send(chatId, Messages.paymentError(lang));
+            List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+            rows.add(List.of(button(Messages.backButton(lang), "menu")));
+            render(chatId, messageId, Messages.paymentError(lang), markup(rows));
         }
     }
 
-    private void sendPayLink(Long chatId, Language lang, String url) {
-        InlineKeyboardButton payBtn = InlineKeyboardButton.builder()
-                .text(Messages.payButton(lang))
-                .url(url)
-                .build();
-        telegram.send(chatId, Messages.paymentCreated(lang), markup(List.of(List.of(payBtn))));
-    }
-
-    private void showMyCourses(Long chatId, BotUser user) {
+    private void showMyCourses(Long chatId, BotUser user, Integer messageId) {
         Language lang = langOf(user);
         List<String> lines = accessService.activeCoursesForUser(user);
-        if (lines.isEmpty()) {
-            telegram.send(chatId, Messages.myCoursesEmpty(lang));
-            return;
-        }
-        telegram.send(chatId, Messages.myCoursesTitle(lang) + "\n\n" + String.join("\n", lines));
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(List.of(button(Messages.backButton(lang), "menu")));
+        String text = lines.isEmpty()
+                ? Messages.myCoursesEmpty(lang)
+                : Messages.myCoursesTitle(lang) + "\n\n" + String.join("\n", lines);
+        render(chatId, messageId, text, markup(rows));
     }
 
     // ===================== Утилиты =====================
