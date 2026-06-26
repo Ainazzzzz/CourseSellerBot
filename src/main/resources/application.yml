@@ -1,0 +1,96 @@
+spring:
+  # По умолчанию активен профиль local -> подхватывается application-local.yml с секретами
+  # (этот файл в .gitignore и в репозиторий не попадает). На проде задай SPRING_PROFILES_ACTIVE.
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  application:
+    name: CourseSellerBot
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/course_seller_bot}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+
+server:
+  port: ${PORT:8080}
+
+# ===================== Telegram =====================
+# СЕКРЕТЫ (токен бота) задаются в application-local.yml (gitignore) или через переменные окружения.
+telegram:
+  bot:
+    username: ${BOT_USERNAME:}
+    token: ${BOT_TOKEN:}
+    # Telegram ID администраторов (через запятую) — кому доступна /stats
+    admins: ${BOT_ADMINS:}
+
+# ===================== Finik (платёжный шлюз) =====================
+# СЕКРЕТЫ (api-key, account-id) задаются в application-local.yml (gitignore) или через env.
+# base-url без /v1/payment — путь добавляется в коде.
+finik:
+  api-key: ${FINIK_API_KEY:}
+  account-id: ${FINIK_ACCOUNT_ID:}
+  base-url: ${FINIK_BASE_URL:https://api.acquiring.averspay.kg}
+  private-key-path: ${FINIK_PRIVATE_KEY_PATH:classpath:private_key.pem}
+  merchant-category-code: "0742"
+  # Публичный URL приложения + путь вебхука. Finik будет слать сюда уведомления об оплате.
+  webhook-url: ${APP_BASE_URL:https://your-domain.example.com}/api/webhooks/finik
+
+# ===================== Курсы =====================
+# Сейчас все 3 курса = темы (topics) одного форум-канала "Coder course".
+# channel-id одинаковый у всех, topic-id — id раздела (из ссылки t.me/c/<id>/<topic-id>).
+# Бот должен быть админом канала с правами «приглашать по ссылке» и «банить».
+# ВАЖНО: Telegram не ограничивает доступ к отдельной теме — войдя в канал, человек видит все темы.
+# Если позже захочешь настоящее разделение — создай 3 отдельных канала и пропиши их channel-id,
+# а topic-id убери.
+courses:
+  # Единственный продукт: полный доступ к каналу со всеми курсами. ЦЕНА — поменяй под себя.
+  bundle:
+    enabled: true
+    price: 5990
+    code: ALL
+    title-ru: "Полный доступ ко всем курсам"
+    title-kg: "Бардык курстарга толук жеткиликтүүлүк"
+    description-ru: "Доступ ко всем курсам канала."
+    description-kg: "Каналдын бардык курстарына жеткиликтүүлүк."
+  currency: "сом"
+  default-access-months: 6
+  items:
+    - code: VIBE
+      price: 1990
+      access-months: 6
+      channel-id: ${CHANNEL_VIBE:-1003723776647}
+      topic-id: 6
+      title-ru: "Вайб-кодинг"
+      title-kg: "Вайб-кодинг"
+      description-ru: "Курс по вайб-кодингу: создаём проекты с помощью ИИ."
+      description-kg: "Вайб-кодинг курсу: ИИ жардамы менен долбоорлорду түзөбүз."
+    - code: AICARTOON
+      price: 1990
+      access-months: 6
+      channel-id: ${CHANNEL_AICARTOON:-1003723776647}
+      topic-id: 3
+      title-ru: "ИИ: создание мультиков"
+      title-kg: "ИИ: мультфильм түзүү"
+      description-ru: "Создание мультфильмов и видео с помощью нейросетей."
+      description-kg: "Нейросеть жардамы менен мультфильм жана видео түзүү."
+    - code: COMPUTER
+      price: 1490
+      access-months: 6
+
+      channel-id: ${CHANNEL_COMPUTER:-1003723776647}
+      topic-id: 13
+      title-ru: "Компьютерная грамотность"
+      title-kg: "Компьютердик сабаттуулук"
+      description-ru: "Базовые навыки работы с компьютером и интернетом."
+      description-kg: "Компьютер жана интернет менен иштөөнүн негиздери."
+
+logging:
+  level:
+    coursesellerbot: INFO
