@@ -30,9 +30,9 @@ telegram:
     admins: ${BOT_ADMINS:}
     # file_id фото команды для экрана "О нас" (оставьте пустым — фото не отправляется)
     # Как получить file_id: отправьте фото боту — он пришлёт file_id в ответ (только для админов)
-    photo-bektur: ${PHOTO_BEKTUR:}
-    photo-nursultan: ${PHOTO_NURSULTAN:}
-    photo-ainazik: ${PHOTO_AINAZIK:}
+    photo-bektur: ${PHOTO_BEKTUR:AgACAgIAAxkBAANWakJwQcPdNzK6jSMoT4HlgLJS77QAAmccaxt9aBBKi537sfD0AloBAAMCAAN5AAM8BA}
+    photo-nursultan: ${PHOTO_NURSULTAN:AgACAgIAAxkBAANYakJwTtnfJlAdQOEMKmMj5ib3gqkAAmgcaxt9aBBKKQGvV-XNrygBAAMCAAN5AAM8BA}
+    photo-ainazik: ${PHOTO_AINAZIK:AgACAgIAAxkBAANaakJwXLYl_YqKxtWH2RnI6U2gNJgAAmocaxt9aBBKAAF2qB802Cf6AQADAgADeAADPAQ}
 
 # ===================== Finik (платёжный шлюз) =====================
 # СЕКРЕТЫ (api-key, account-id) задаются в application-local.yml (gitignore) или через env.
