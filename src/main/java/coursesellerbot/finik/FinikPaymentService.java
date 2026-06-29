@@ -91,16 +91,19 @@ public class FinikPaymentService {
             log.info("Ответ Finik: status={}", response.getStatusCode());
 
             if (response.getStatusCode() == HttpStatus.FOUND && response.getHeaders().getLocation() != null) {
-                String location = response.getHeaders().getLocation().toString();
-                 // Finik при отклонении сразу редиректит на /v1/redirect?...&status=failed.
-                // Такую ссылку нельзя отдавать пользователю — это не страница оплаты.
-                if (location.contains("status=failed") || location.contains("/v1/redirect")) {
+                URI location = response.getHeaders().getLocation();
+                String locationStr = location.toString();
+                // Успешный ответ Finik — редирект на qr.finik.kg (QR-страница оплаты).
+                // failure_redirect_url внутри строки тоже содержит "status=failed" и "/v1/redirect",
+                // поэтому проверяем хост основного редиректа, а не весь URL целиком.
+                String host = location.getHost() != null ? location.getHost() : "";
+                if (!host.contains("finik")) {
                     log.error("Finik отклонил платёж. Redirect: {}. Проверь: 1) публичный ключ зарегистрирован в Finik; "
-                            + "2) api-key/account-id боевые; 3) подпись запроса.", location);
-                    throw new RuntimeException("Finik отклонил создание платежа (status=failed): " + location);
+                            + "2) api-key/account-id боевые; 3) подпись запроса.", locationStr);
+                    throw new RuntimeException("Finik отклонил создание платежа: " + locationStr);
                 }
-                log.info("Получен URL оплаты: {}", location);
-                return location;
+                log.info("Получен URL оплаты: {}", locationStr);
+                return locationStr;
             }
             log.error("Неожиданный ответ Finik: status={}, body={}", response.getStatusCode(), response.getBody());
             throw new RuntimeException("Неожиданный ответ Finik: "
