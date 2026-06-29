@@ -28,6 +28,11 @@ telegram:
     token: ${BOT_TOKEN:}
     # Telegram ID администраторов (через запятую) — кому доступна /stats
     admins: ${BOT_ADMINS:}
+    # file_id фото команды для экрана "О нас" (оставьте пустым — фото не отправляется)
+    # Как получить file_id: отправьте фото боту — он пришлёт file_id в ответ (только для админов)
+    photo-bektur: ${PHOTO_BEKTUR:}
+    photo-nursultan: ${PHOTO_NURSULTAN:}
+    photo-ainazik: ${PHOTO_AINAZIK:}
 
 # ===================== Finik (платёжный шлюз) =====================
 # СЕКРЕТЫ (api-key, account-id) задаются в application-local.yml (gitignore) или через env.

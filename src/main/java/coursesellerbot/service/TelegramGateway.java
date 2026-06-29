@@ -9,8 +9,10 @@ import org.telegram.telegrambots.meta.api.methods.groupadministration.BanChatMem
 import org.telegram.telegrambots.meta.api.methods.groupadministration.UnbanChatMember;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.CreateChatInviteLink;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.ChatInviteLink;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -49,6 +51,21 @@ public class TelegramGateway {
             bot().execute(message);
         } catch (TelegramApiException e) {
             log.error("Не удалось отправить сообщение chatId={}", chatId, e);
+        }
+    }
+
+    /** Отправляет фото по file_id с HTML-подписью. */
+    public void sendPhoto(Long chatId, String fileId, String caption) {
+        SendPhoto photo = SendPhoto.builder()
+                .chatId(chatId.toString())
+                .photo(new InputFile(fileId))
+                .caption(caption)
+                .parseMode("HTML")
+                .build();
+        try {
+            bot().execute(photo);
+        } catch (TelegramApiException e) {
+            log.error("Не удалось отправить фото chatId={} fileId={}", chatId, fileId, e);
         }
     }
 

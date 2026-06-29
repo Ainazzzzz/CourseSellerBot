@@ -67,6 +67,8 @@ public class CourseSellerBot extends TelegramLongPollingBot {
         try {
             if (update.hasCallbackQuery()) {
                 handleCallback(update);
+            } else if (update.hasMessage() && update.getMessage().hasPhoto()) {
+                handlePhoto(update);
             } else if (update.hasMessage() && update.getMessage().hasText()) {
                 handleText(update);
             }
@@ -112,6 +114,18 @@ public class CourseSellerBot extends TelegramLongPollingBot {
             return;
         }
         telegram.send(chatId, Messages.unknownCommand(langOf(user)));
+    }
+
+    /** Когда админ присылает фото — логируем file_id, чтобы скопировать его в конфиг. */
+    private void handlePhoto(Update update) {
+        var from = update.getMessage().getFrom();
+        if (!isAdmin(from.getId())) return;
+        Long chatId = update.getMessage().getChatId();
+        var photos = update.getMessage().getPhoto();
+        // Берём самое большое (последнее в списке) — у него лучшее качество
+        String fileId = photos.get(photos.size() - 1).getFileId();
+        log.info("Получено фото от админа: file_id={}", fileId);
+        telegram.send(chatId, "📸 <b>file_id фото:</b>\n<code>" + fileId + "</code>\n\nСкопируй и вставь в application.yml или env-переменную.");
     }
 
     // ===================== Callback-кнопки =====================
@@ -177,9 +191,32 @@ public class CourseSellerBot extends TelegramLongPollingBot {
     }
 
     private void showPitch(Long chatId, Language lang, Integer messageId) {
+        boolean sentPhotos = sendTeamPhotos(chatId, lang);
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         rows.add(List.of(button(Messages.viewCoursesButton(lang), "menu")));
-        render(chatId, messageId, Messages.pitchText(lang), markup(rows));
+        // Если фото отправлены — команда уже представлена в подписях, шлём только блок курсов
+        // Если фото нет — шлём один экран с командой + курсами
+        String text = sentPhotos ? Messages.pitchCourses(lang) : Messages.pitchText(lang);
+        // После фото нельзя редактировать старое сообщение — шлём новое
+        render(chatId, sentPhotos ? null : messageId, text, markup(rows));
+    }
+
+    /** Отправляет фото команды с подписями. Возвращает true если хоть одно отправлено. */
+    private boolean sendTeamPhotos(Long chatId, Language lang) {
+        boolean sent = false;
+        if (!botProperties.getPhotoBektur().isBlank()) {
+            telegram.sendPhoto(chatId, botProperties.getPhotoBektur(), Messages.photoCaptionBektur(lang));
+            sent = true;
+        }
+        if (!botProperties.getPhotoNursultan().isBlank()) {
+            telegram.sendPhoto(chatId, botProperties.getPhotoNursultan(), Messages.photoCaptionNursultan(lang));
+            sent = true;
+        }
+        if (!botProperties.getPhotoAinazik().isBlank()) {
+            telegram.sendPhoto(chatId, botProperties.getPhotoAinazik(), Messages.photoCaptionAinazik(lang));
+            sent = true;
+        }
+        return sent;
     }
 
     private void askLanguage(Long chatId, Integer messageId, boolean isNew) {

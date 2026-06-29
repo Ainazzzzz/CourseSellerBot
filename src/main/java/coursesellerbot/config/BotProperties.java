@@ -20,6 +20,11 @@ public class BotProperties {
     /** Список Telegram ID администраторов через запятую. */
     private String admins = "";
 
+    // file_id фото команды — получить: отправьте фото боту, он залогирует file_id
+    private String photoBektur = "";
+    private String photoNursultan = "";
+    private String photoAinazik = "";
+
     public Set<Long> adminIds() {
         Set<Long> ids = new HashSet<>();
         if (admins == null || admins.isBlank()) {
