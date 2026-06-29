@@ -85,7 +85,7 @@ public class CourseSellerBot extends TelegramLongPollingBot {
 
         if (text.startsWith("/start")) {
             if (user.getLanguage() == null) {
-                askLanguage(chatId, null);
+                showWelcome(chatId, null);
             } else {
                 showMainMenu(chatId, user.getLanguage(), null);
             }
@@ -100,7 +100,7 @@ public class CourseSellerBot extends TelegramLongPollingBot {
             return;
         }
         if (text.equals("/lang")) {
-            askLanguage(chatId, null);
+            askLanguage(chatId, null, false);
             return;
         }
         if (text.equals("/stats")) {
@@ -126,6 +126,16 @@ public class CourseSellerBot extends TelegramLongPollingBot {
         BotUser user = userService.getOrCreate(chatId, from.getUserName(), from.getFirstName());
         String data = cb.getData();
 
+        if (data.equals("getstarted")) {
+            askLanguage(chatId, messageId, true);
+            return;
+        }
+        if (data.startsWith("lang_new:")) {
+            Language lang = "KG".equals(data.substring(9)) ? Language.KG : Language.RU;
+            user = userService.setLanguage(chatId, lang);
+            showPitch(chatId, lang, messageId);
+            return;
+        }
         if (data.startsWith("lang:")) {
             Language lang = "KG".equals(data.substring(5)) ? Language.KG : Language.RU;
             user = userService.setLanguage(chatId, lang);
@@ -137,7 +147,7 @@ public class CourseSellerBot extends TelegramLongPollingBot {
             return;
         }
         if (data.equals("changelang")) {
-            askLanguage(chatId, messageId);
+            askLanguage(chatId, messageId, false);
             return;
         }
         if (data.equals("mycourses")) {
@@ -160,11 +170,24 @@ public class CourseSellerBot extends TelegramLongPollingBot {
 
     // ===================== Экраны =====================
 
-    private void askLanguage(Long chatId, Integer messageId) {
+    private void showWelcome(Long chatId, Integer messageId) {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(List.of(button(Messages.startButton(), "getstarted")));
+        render(chatId, messageId, Messages.welcomeScreen(), markup(rows));
+    }
+
+    private void showPitch(Long chatId, Language lang, Integer messageId) {
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+        rows.add(List.of(button(Messages.viewCoursesButton(lang), "menu")));
+        render(chatId, messageId, Messages.pitchText(lang), markup(rows));
+    }
+
+    private void askLanguage(Long chatId, Integer messageId, boolean isNew) {
+        String prefix = isNew ? "lang_new:" : "lang:";
         List<List<InlineKeyboardButton>> rows = new ArrayList<>();
         rows.add(List.of(
-                button(Messages.langButtonRu(), "lang:RU"),
-                button(Messages.langButtonKg(), "lang:KG")
+                button(Messages.langButtonRu(), prefix + "RU"),
+                button(Messages.langButtonKg(), prefix + "KG")
         ));
         render(chatId, messageId, Messages.chooseLanguage(), markup(rows));
     }

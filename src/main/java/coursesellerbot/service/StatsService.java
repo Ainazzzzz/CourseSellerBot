@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Статистика для администратора (/stats).
@@ -26,18 +27,28 @@ public class StatsService {
     @Transactional(readOnly = true)
     public String buildReport() {
         long purchases = paymentRepository.countByStatus(PaymentStatus.COMPLETED);
-        long activeAccesses = accessRepository.countByActiveTrue();
-        long users = userRepository.count();
+        long activeUsers = accessRepository.countDistinctUsersWithActiveAccess();
+        List<coursesellerbot.entity.BotUser> allUsers = userRepository.findAll(
+                org.springframework.data.domain.Sort.by("createdAt").ascending());
         BigDecimal revenue = paymentRepository.sumAmountByStatus(PaymentStatus.COMPLETED);
         if (revenue == null) {
             revenue = BigDecimal.ZERO;
         }
         String currency = coursesProperties.getCurrency();
 
-        return "📊 Статистика\n\n"
-                + "👥 Пользователей бота: " + users + "\n"
-                + "✅ Успешных оплат: " + purchases + "\n"
-                + "🔓 Активных доступов: " + activeAccesses + "\n"
-                + "💰 Выручка: " + revenue.toPlainString() + " " + currency;
+        StringBuilder sb = new StringBuilder();
+        sb.append("📊 Статистика\n\n")
+          .append("👥 Пользователей бота: ").append(allUsers.size()).append("\n")
+          .append("✅ Успешных оплат: ").append(purchases).append("\n")
+          .append("🔓 Активных пользователей: ").append(activeUsers).append("\n")
+          .append("💰 Выручка: ").append(revenue.toPlainString()).append(" ").append(currency)
+          .append("\n\n👤 Список пользователей:\n");
+
+        for (coursesellerbot.entity.BotUser u : allUsers) {
+            String name = u.getUsername() != null ? "@" + u.getUsername() : u.getFirstName();
+            sb.append("• ").append(name).append("\n");
+        }
+
+        return sb.toString().trim();
     }
 }
